@@ -23,8 +23,9 @@ SparkTradeStream/
 │
 ├── financial_data_generator.py      # Generates dummy financial transactions
 ├── financial_data_server.py         # TCP server that streams the transactions
+├── spark_client.py                  # Spark Streaming job to process the stream
 ├── socket_client_test.ipynb         # Simple socket client to test connection
-├── spark_streaming_client.ipynb     # Spark Streaming job to process the stream
+├── spark_streaming_client.ipynb     # Spark Streaming job to process the stream, However it only success the first time running,
 ├── requirements.txt                 # Python dependencies
 ├── .gitignore                       # Ignore common files
 └── README.md                        # Project documentation
@@ -34,20 +35,20 @@ SparkTradeStream/
 
 ## ⚙️ Setup Instructions
 
-### 1️⃣ Clone the Repository
+### 1 Clone the Repository
 
 ```bash
 git clone https://github.com/liu-yuxin98/Data_Projects/SparkTradeStream.git
 cd SparkTradeStream
 ```
 
-### 2️⃣ Install Dependencies
+### 2 Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3️⃣ Start the Financial Data Server
+### 3 Start the Financial Data Server
 
 The server generates random financial transactions and streams them over TCP port **9999**.
 
@@ -63,7 +64,7 @@ python financial_data_server.py
 ⏳ Waiting for client to connect...
 ```
 
-### 4️⃣ Test the Stream with a Simple Client
+### 4 Test the Stream with a Simple Client
 
 Open **`socket_client_test.ipynb`** in Jupyter.
 
@@ -85,11 +86,11 @@ It connects to `127.0.0.1:9999` and prints raw JSON transactions, for example:
 }
 ```
 
-### 5️⃣ Run the Spark Streaming Client
+### 5 Run the Spark Streaming Client
 
-Open **`spark_streaming_client.ipynb`** in Jupyter.
+Run **`spark_client.py`**.
 
-This notebook:
+This code:
 
 - Initializes a **Spark StreamingContext**
 - Connects to the TCP socket (`localhost:9999`)
@@ -143,8 +144,10 @@ This project is designed for:
 
 ## ✨ Future Enhancements
 
-- 💾 Save parsed data to a **data lake** (S3/HDFS)
-- 🔄 Switch to **Structured Streaming** instead of DStreams
-- 📊 Add **real-time dashboards** with Spark + Kafka + Grafana
+- Solving current Bugs:
+  - When run spark_streaming_client.ipynb it always get issues, need to reatrt financial_data_server.py
+- Save parsed data to a **data lake** (S3/HDFS)
+- Switch to **Structured Streaming** instead of DStreams
+- Add **real-time dashboards** with Spark + Kafka + Grafana
 
 ---

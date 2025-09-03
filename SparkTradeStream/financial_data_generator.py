@@ -59,45 +59,185 @@ class FinancialDataGenerator:
             'customer_segment': segment
         }
 
-def start_financial_data_stream(port=9999, interval=1.0):
-    """Start the financial data TCP server with debug logging."""
+# accept many clients
+def start_financial_data_stream(port=9999, interval=1.0, stop_event=None):
+    """
+    Start a TCP server that streams dummy financial transactions to multiple clients.
+
+    Args:
+        port (int): TCP port to bind
+        interval (float): seconds between transactions
+        stop_event (threading.Event): Event to signal server shutdown
+    """
     generator = FinancialDataGenerator()
+    stop_event = stop_event or threading.Event()
+
+    def handle_client(conn, addr):
+        print(f"✅ Client connected from {addr}")
+        conn.settimeout(1)
+        try:
+            while not stop_event.is_set():
+                transaction = generator.generate_transaction()
+                try:
+                    conn.sendall((json.dumps(transaction) + "\n").encode())
+                except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
+                    print(f"⚠️ Client {addr} disconnected")
+                    break
+                time.sleep(interval)
+        finally:
+            conn.close()
+            print(f"🔌 Connection to {addr} closed")
 
     def stream_data():
         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server_socket.bind(('localhost', port))
+        server_socket.listen(5)  # allow multiple clients to queue
+        server_socket.settimeout(1)  # periodically check stop_event
+        print(f"📡 Financial data server listening on localhost:{port}")
 
         try:
-            print(f"[DEBUG] Attempting to bind server to 127.0.0.1:{port}...")
-            server_socket.bind(('127.0.0.1', port))
-            server_socket.listen(1)
-            print(f"📡 Financial data server listening on 127.0.0.1:{port}")
-            print("⏳ Waiting for client to connect...")
-
-            conn, addr = server_socket.accept()
-            print(f"✅ Client connected from {addr}")
-
-            transaction_count = 0
-            while True:
-                transaction = generator.generate_transaction()
-                message = json.dumps(transaction) + '\n'
-                conn.sendall(message.encode('utf-8'))
-
-                transaction_count += 1
-                if transaction_count % 10 == 0:
-                    print(f"📈 Sent {transaction_count} transactions")
-
-                time.sleep(interval)
-
-        except Exception as e:
-            print(f"⚠️ Server thread error: {e}")
+            while not stop_event.is_set():
+                try:
+                    conn, addr = server_socket.accept()
+                    client_thread = threading.Thread(target=handle_client, args=(conn, addr))
+                    client_thread.daemon = True
+                    client_thread.start()
+                except socket.timeout:
+                    continue
         finally:
-            print("[DEBUG] Closing server socket...")
             server_socket.close()
+            print("🛑 Server socket closed")
 
-    thread = threading.Thread(target=stream_data, daemon=False)
+    thread = threading.Thread(target=stream_data)
     thread.start()
-    time.sleep(1)  # Allow thread to start
-    print("[DEBUG] Server thread started")
     return thread
+
+
+# only accept one client
+# def start_financial_data_stream(port=9999, interval=1.0, stop_event=None):
+#     """
+#     Start a TCP server that streams dummy financial transactions.
+
+#     Args:
+#         port (int): TCP port to bind
+#         interval (float): seconds between transactions
+#         stop_event (threading.Event): Event to signal server shutdown
+#     """
+#     generator = FinancialDataGenerator()
+#     stop_event = stop_event or threading.Event()
+
+#     def stream_data():
+#         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+#         server_socket.bind(('localhost', port))
+#         server_socket.listen(1)
+#         server_socket.settimeout(1)  # periodically check stop_event
+#         print(f"📡 Financial data server listening on localhost:{port}")
+
+#         try:
+#             while not stop_event.is_set():
+#                 try:
+#                     conn, addr = server_socket.accept()
+#                     print(f"✅ Client connected from {addr}")
+#                     conn.settimeout(1)
+#                     while not stop_event.is_set():
+#                         transaction = generator.generate_transaction()
+#                         try:
+#                             conn.sendall((json.dumps(transaction) + "\n").encode())
+#                         except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError):
+#                             print("⚠️ Client disconnected")
+#                             break
+#                         time.sleep(interval)
+#                     conn.close()
+#                     print(f"🔌 Connection to {addr} closed")
+#                 except socket.timeout:
+#                     continue    
+
+#         finally:
+#             server_socket.close()
+#             print("🛑 Server socket closed")
+
+#     thread = threading.Thread(target=stream_data)
+#     thread.start()
+#     return thread
+
+#   
+# def start_financial_data_stream(port=9999, interval=1.0, stop_event=None):
+#     generator = FinancialDataGenerator()
+
+#     def stream_data():
+#         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+#         server_socket.bind(('localhost', port))
+#         server_socket.listen(1)
+#         print(f"📡 Financial data server listening on localhost:{port}")
+
+#         server_socket.settimeout(1)  # periodically check stop_event
+
+#         try:
+#             while not stop_event.is_set():
+#                 try:
+#                     conn, addr = server_socket.accept()
+#                     print(f"✅ Client connected from {addr}")
+#                     conn.settimeout(1)
+
+#                     while not stop_event.is_set():
+#                         transaction = generator.generate_transaction()
+#                         conn.send((json.dumps(transaction) + "\n").encode())
+#                         time.sleep(interval)
+
+#                 except socket.timeout:
+#                     continue
+#         finally:
+#             server_socket.close()
+#             print("🛑 Server socket closed")
+
+#     thread = threading.Thread(target=stream_data)
+#     thread.start()
+#     return thread
+
+
+# unable to stop by ctrl+c
+# def start_financial_data_stream(port=9999, interval=1.0):
+#     """Start the financial data TCP server with debug logging."""
+#     generator = FinancialDataGenerator()
+
+#     def stream_data():
+#         server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#         server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+#         try:
+#             print(f"[DEBUG] Attempting to bind server to 127.0.0.1:{port}...")
+#             server_socket.bind(('127.0.0.1', port))
+#             server_socket.listen(1)
+#             print(f"📡 Financial data server listening on 127.0.0.1:{port}")
+#             print("⏳ Waiting for client to connect...")
+
+#             conn, addr = server_socket.accept()
+#             print(f"✅ Client connected from {addr}")
+
+#             transaction_count = 0
+#             while True:
+#                 transaction = generator.generate_transaction()
+#                 message = json.dumps(transaction) + '\n'
+#                 conn.sendall(message.encode('utf-8'))
+
+#                 transaction_count += 1
+#                 if transaction_count % 10 == 0:
+#                     print(f"📈 Sent {transaction_count} transactions")
+
+#                 time.sleep(interval)
+
+#         except Exception as e:
+#             print(f"⚠️ Server thread error: {e}")
+#         finally:
+#             print("[DEBUG] Closing server socket...")
+#             server_socket.close()
+
+#     thread = threading.Thread(target=stream_data, daemon=False)
+#     thread.start()
+#     time.sleep(1)  # Allow thread to start
+#     print("[DEBUG] Server thread started")
+#     return thread
 
