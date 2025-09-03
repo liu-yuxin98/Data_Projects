@@ -27,8 +27,14 @@ if __name__ == "__main__":
 
     counts.pprint()
 
+    amounts = transactions.map(lambda tx: (tx["transaction_type"], tx["total_amount"])) \
+                          .reduceByKey(lambda a, b: a + b)
+    amounts.pprint()
+
     stop_streaming(ssc, timeout=40)
     
     # Start streaming
     ssc.start()
     ssc.awaitTermination()
+
+
