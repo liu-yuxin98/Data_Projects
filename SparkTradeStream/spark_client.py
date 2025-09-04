@@ -13,10 +13,10 @@ def stop_streaming(ssc, timeout):
 if __name__ == "__main__":
     # Create SparkContext and StreamingContext (batch interval 5s)
     sc = SparkContext("local[2]", "FinancialDataStream")
-    ssc = StreamingContext(sc, 5)
+    ssc = StreamingContext(sc, 1)
 
     # Connect to the TCP server
-    lines = ssc.socketTextStream("127.0.0.1", 9999)
+    lines = ssc.socketTextStream("localhost", 9999)
 
     # Parse JSON lines
     transactions = lines.map(lambda line: json.loads(line))

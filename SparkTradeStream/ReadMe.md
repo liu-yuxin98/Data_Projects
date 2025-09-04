@@ -88,7 +88,7 @@ It connects to `127.0.0.1:9999` and prints raw JSON transactions, for example:
 
 ### 5 Run the Spark Streaming Client
 
-Run **`spark_client.py`**.
+Run **`spark_streaming_client.ipynb`**.
 
 This code:
 
@@ -105,6 +105,16 @@ BUY: 3
 SELL: 5
 TRANSFER: 2
 ```
+
+Run start_streaming() first to start spark streaming
+if you want to stop, please run stop_streaming().
+
+> **WARNING:**  
+> You cannot simply rerun `start_streaming()` to restart streaming.
+>
+> The `socketTextStream` in local mode is designed for **one-time, continuous streaming**, and Spark Streaming is **not intended** to repeatedly stop/restart streaming contexts in the same JVM session.
+>
+> If you really need to restart, please **restart the Jupyter kernel** to get a fresh JVM.
 
 ---
 
