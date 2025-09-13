@@ -2,6 +2,7 @@
 
 # ignore outputData folder
 outputData/
+SampleData/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
